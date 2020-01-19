@@ -4,7 +4,7 @@
 
 ;; Author: Mohsin Kaleem <mohkalsin@gmail.com>
 ;; Keywords: lisp, internal
-;; Version: 0.0.1
+;; Version: 0.0.2
 ;; URL: https://github.com/mohkale/spaceleader
 
 ;;; License: GPLv3
@@ -155,7 +155,9 @@ Notable changes when setting this option are:
 (put 'leader/without-prefix 'lisp-indent-function 'defun)
 
 (defun leader//key-in-major-mode-prefix-p (key)
-  (string-prefix-p leader-major-mode-prefix key))
+  (and
+   (>= (length key) 1)
+   (string-prefix-p leader-major-mode-prefix key)))
 
 (cl-defmacro leader//iterate-state-leaders
     ((leader states &optional include-major) &rest body)
@@ -301,33 +303,34 @@ see also: `leader/declare-prefix-for-mode'."
 ;;                                                                |___/
 
 (defmacro leader//set-leader-bindings-iterator (map key def bindings &optional minor)
-  "iterate for all the bindings in BINDINGS and set them in MAP."
-  `(let ((check-major-mode-key
-          (and ,minor ;; major-modes already have bindings in ","
-               ;; if "," is simulated, this binding will be visible.
-               (not leader-simulate-major-mode-key)
-               ;; if not given, then no point in adding to it.
-               leader-major-mode-key)))
+  "iterate for all the bindings in BINDINGS and set them in MAP.
+set MINOR as the symbol tied to the minor mode for which this is being bound"
+  `(let ((map-value (symbol-value ,map))
+         major-key-alias-map
+
+         (check-major-mode-key (and ,minor
+                                    ;; major modes already have bindings under ","
+                                    (not leader-simulate-major-mode-key)
+                                    ;; if "," is simulated, this binding will be visible.
+                                    leader-major-mode-key
+                                    ;; if actively disabled, then no point in binding it.
+                                    )))
      (while ,key
        (setq ,key (leader-join-key-to-prefix ,key))
 
-       ;; check and then assign key to `leader-major-mode-key'
-       (if (and check-major-mode-key
-                (>= (length ,key) 1)
-                (leader//key-in-major-mode-prefix-p key))
-           (bind-key (substring ,key (length leader-major-mode-prefix))
-                     ,def (symbol-value ,map))
+       (bind-key ,key ,def map-value)
 
-         (bind-key ,key ,def (symbol-value ,map)))
+       ;; when key exists under the major-mode prefix, but current mode isn't a major mode.
+       (when (and check-major-mode-key
+                  (leader//key-in-major-mode-prefix-p ,key))
+         (bind-key (substring ,key (length leader-major-mode-prefix))
+                   ,def
+                   (or major-key-alias-map
+                       (setq major-key-alias-map
+                             (leader//init-minor-mode-major-key-prefix-map ,minor ,map)))))
+
        (setq ,key (pop ,bindings) ,def (pop ,bindings)))))
 (put 'leader//set-leader-bindings-iterator 'lisp-indent-function 'defun)
-
-;;;###autoload
-(defun leader/set-keys (key def &rest bindings)
-  "set bindings in the leader key map for all modes.
-supply as many key binding pairs as you wish to define."
-  (leader//set-leader-bindings-iterator 'leader-map key def bindings))
-(put 'leader/set-keys 'lisp-indent-function 'defun)
 
 (defun leader//init-mode-prefix-map (mode map &optional minor)
   "Check for MAP-prefix. If it doesn't exist yet, use `bind-map'
@@ -336,17 +339,47 @@ to create it and bind it to `leader-key'and `leader-nnorm-key'. "
 
   (let ((prefix-map (intern (format "%s-prefix" map))))
     (or (boundp prefix-map)
-        (let ((bind-major-key (and (not leader-simulate-major-mode-key)
+        (let ((bind-major-key (and (not minor)
+                                   (not leader-simulate-major-mode-key)
                                    leader-major-mode-key)))
           (leader//iterate-state-leaders (leader states bind-major-key)
             (eval `(bind-map ,map
                      :prefix-cmd ,prefix-map
                      :evil-keys (,(if (string-equal leader leader-major-mode-key)
                                      leader ;; if , don't append m, else do so.
-                                   (concat leader " " leader-major-mode-prefix)))
+                                    (if minor
+                                        leader ;; unless your setting up a minor mode
+                                      (concat leader " " leader-major-mode-prefix))))
                      :evil-states ,states
                      ,(if minor :minor-modes :major-modes) (,mode))))
           (boundp prefix-map)))))
+
+(defun leader//init-minor-mode-major-key-prefix-map (mode map)
+    (format "when not simulating `leader-major-mode-key' you have to bind
+a unique map for minor-modes to enable bindings that're active
+both through '%s %s' and '%s'
+
+NOTE maybe I should just bind directly to the minor-modes map instead
+of constructing a whole new map for it :? "
+            leader-key leader-major-mode-prefix leader-major-mode-key)
+  (let* ((map (intern (concat (string-remove-suffix "-map"
+                                                    (symbol-name map))
+                              "--major-prefix-alias-map")))
+         (prefix-map (intern (concat (symbol-name map) "-prefix"))))
+    (unless (boundp prefix-map)
+      (eval `(bind-map ,map
+               :prefix-cmd ,prefix-map
+               :evil-keys (,leader-major-mode-key)
+               :evil-states ,leader-norm-states
+               :minor-modes (,mode))))
+    (symbol-value map)))
+
+;;;###autoload
+(defun leader/set-keys (key def &rest bindings)
+  "set bindings in the leader key map for all modes.
+supply as many key binding pairs as you wish to define."
+  (leader//set-leader-bindings-iterator 'leader-map key def bindings))
+(put 'leader/set-keys 'lisp-indent-function 'defun)
 
 ;;;###autoload
 (defun leader/set-keys-for-mode (mode key def &rest bindings)
@@ -354,7 +387,7 @@ to create it and bind it to `leader-key'and `leader-nnorm-key'. "
 see also: `leader/set-keys'"
   (let* ((map (intern (format "leader-%s-map" mode))))
     (when (leader//init-mode-prefix-map mode map t)
-      (leader//set-leader-bindings-iterator map key def bindings t))))
+      (leader//set-leader-bindings-iterator map key def bindings mode))))
 (put 'leader/set-keys-for-mode 'lisp-indent-function 'defun)
 
 ;;;###autoload
@@ -362,16 +395,17 @@ see also: `leader/set-keys'"
   "set keys in the leader map for the given major mode MODE.
 see also: `leader/set-keys'"
   (let* ((map (intern (format "leader-%s-map" mode))))
-    (when (leader//init-mode-prefix-map mode map nil)
-      (leader//set-leader-bindings-iterator map key def bindings nil))))
+    (when (leader//init-mode-prefix-map mode map)
+      (leader//set-leader-bindings-iterator map key def bindings))))
 (put 'leader/set-keys-for-mode! 'lisp-indent-function 'defun)
 
 ;; pass mode argument as list to repeat for every member of list.
 (let* ((multi-mode-batch-call
         (lambda (func mode &rest args)
+          "pass mode argument as list, to repeat for every member of list."
           (if (listp mode)
-              (mapcar (lambda (m) (apply func m args))
-                      mode)
+              (dolist (m mode)
+                (apply func m args))
             (apply func mode args))))
        (mode-funcs '(leader/set-keys-for-mode
                      leader/set-keys-for-mode!
