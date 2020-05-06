@@ -17,6 +17,9 @@ following recipe.
  '(spaceleader :type git :host github :repo "mohkale/spaceleader"))
 ```
 
+This package also comes bundled with a file `spaceleader-base.el` which offers some
+basic leader bindings which you may or may not want setup for you.
+
 ## Commands
 | spacemacs                                | spaceleader                    |
 |:-----------------------------------------|:-------------------------------|
