@@ -82,11 +82,9 @@
   "f\"" 'recover-this-file
   "f'" 'recover-file
   "fc" 'copy-file
-  "fF" 'find-file-at-point
   "ff" 'find-file
   "fo" 'find-file-other-window
-  "fl" 'find-file-literally
-  "f|" 'find-file-at-point
+  "fh" 'find-file-at-point
   "sF" 'find-dired
   "fL" 'find-file-literally
   ;; frame
@@ -122,6 +120,7 @@
   "j TAB" 'move-to-column
 
   "h"  "help"
+  "hh" 'display-local-help
   "hn" 'view-emacs-news
   "h/" 'apropos-command
   "hg" 'describe-gnu-project
@@ -155,7 +154,7 @@
   "MC" 'c-mode
   "Mf" 'flyspell-mode
   "MF" 'follow-mode
-  "Mt" 'fundamental-mode
+  "Mt" 'text-mode
   "Mp" 'python-mode
   "Mr" 'ruby-mode
   "Ms" 'shell-script-mode
