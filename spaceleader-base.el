@@ -38,15 +38,14 @@
   "!" 'shell-command
   "&" 'async-shell-command
   "." 'repeat
-  "U" 'universal-argument
-  "u" 'smart-universal-argument
+  "u" 'universal-argument
 
   "a"  "applications"
   "a:" 'eshell
   "aC" 'calc-dispatch
   "ac" 'calendar
   "ae" 'package-list-packages
-  "af" 'list-faces-display
+  "af" 'describe-face
   "am" 'man
   "aM" 'woman
   "aP" 'proced
@@ -90,8 +89,10 @@
   ;; frame
   "fx" 'delete-frame
   "fX" 'delete-other-frames
-  "fm" '("maximize" . toggle-frame-maximized)
+  "f RET" '("maximize" . toggle-frame-maximized)
   "fn" 'make-frame-command
+  "fm" 'set-frame-name
+  "fg" 'select-frame-by-name
   "f TAB" 'other-frame
 
   "fe"  "emacs"
@@ -187,7 +188,7 @@
   "tu" 'toggle-uniquify-buffer-names
   "tb" 'toggle-indicate-empty-lines
   "ta" 'toggle-text-mode-auto-fill
-  "tR" '("toggle-read-only" . read-only-mode)
+  "te" '("toggle-read-only" . read-only-mode)
   "tc" 'toggle-case-fold-search
   "ti" 'toggle-input-method
   "ts" 'toggle-save-place-globally
