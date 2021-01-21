@@ -40,18 +40,6 @@
   "." 'repeat
   "u" 'universal-argument
 
-  "a"  "applications"
-  "a:" 'eshell
-  "aC" 'calc-dispatch
-  "ac" 'calendar
-  "ae" 'package-list-packages
-  "af" 'describe-face
-  "am" 'man
-  "aM" 'woman
-  "aP" 'proced
-  "ap" 'list-processes
-  "aX" 'customize
-
   "b"  "buffers"
   "bb" 'switch-to-buffer
   "bB" 'switch-to-buffer-other-window
@@ -203,10 +191,6 @@
   "**" 'calc
   "*y" 'calc-copy-to-buffer
   )
-
-(with-eval-after-load 'undo-tree
-  (leader/set-keys
-    "au" '("undo-tree" . undo-tree-visualize)))
 
 (with-eval-after-load 'winum
   (leader/set-keys
