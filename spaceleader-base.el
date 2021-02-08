@@ -32,8 +32,8 @@
 
 (leader/set-keys
   "SPC" '("M-x" . execute-extended-command)
-  "ESC" 'exit-recursive-edit
-  "DEL" 'abort-recursive-edit
+  "<escape>" 'abort-recursive-edit
+  "DEL"      'exit-recursive-edit
 
   "!" 'shell-command
   "&" 'async-shell-command
