@@ -62,6 +62,7 @@
   "ci" 'comment-indent
 
   "e"  "errors"
+  "e1" 'first-error
   "en" 'next-error
   "ep" 'previous-error
 
