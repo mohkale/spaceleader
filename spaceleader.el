@@ -124,14 +124,14 @@ Notable changes when setting this option are:
 
     entries))
 
-;; activate leader-map in every known evil-state for the appropriate
+;; Activate leader-map in every known evil-state for the appropriate
 ;; leader keys.
 (cl-loop for (states . leader) in (leader--states-with-leaders)
          do (general-define-key
               :states states
               leader '(:keymap leader-map :which-key "emacs-root")))
 
-;; enable the major-mode-prefix.
+;; Enable the major-mode-prefix.
 (when (and leader-major-mode-key
            leader-simulate-major-mode-key)
   (general-define-key
@@ -143,16 +143,18 @@ Notable changes when setting this option are:
        ,(concat leader-key " " leader-major-mode-prefix)))))
 
 ;;;###autoload
-(defmacro leader/with-prefix (prefix &rest body)
+(defmacro leader-with-prefix (prefix &rest body)
+  (declare (indent defun))
   `(let ((leader--prefix (concat leader--prefix " " ,prefix)))
      ,@body))
-(put 'leader/with-prefix 'lisp-indent-function 'defun)
+(define-obsolete-function-alias 'leader/with-prefix 'leader-with-prefix "0.0.4")
 
 ;;;###autoload
-(defmacro leader/with-major-mode-prefix (&rest body)
+(defmacro leader-with-major-mode-prefix (&rest body)
+  (declare (indent defun))
   `(leader/with-prefix ,leader-major-mode-prefix
      ,@body))
-(put 'leader/with-major-mode-prefix 'lisp-indent-function 'defun)
+(define-obsolete-function-alias 'leader/with-major-mode-prefix 'leader-with-major-mode-prefix "0.0.4")
 
 (defun leader--init-major-mode-prefix-map (mode map &optional minor)
   "ensure a leader-key map for MODE exists and is bound to `leader-key',
@@ -199,17 +201,6 @@ of constructing a whole new map for it :? "
           :minor-modes (,mode))))
     (symbol-value map)))
 
-(defmacro leader--bindings-to-tuples (bindings)
-  "convert an argument list of the type (KEY1 ARG1 KEY2 ARG2)
-into a list of the form ((KEY1 . ARG1) (KEY2 . ARG2))."
-  `(cl-loop with last = nil
-            for (i . arg) in (-zip (number-sequence 0 (length ,bindings)) ,bindings)
-            unless (zerop (% i 2))
-              collect (cons last arg)
-            else
-              do (setq last arg)
-            end))
-
 (defmacro leader--key-in-major-mode-prefix-p (key)
   `(and
     (>= (length ,key) 1)
@@ -240,6 +231,18 @@ into a list of the form ((KEY1 . ARG1) (KEY2 . ARG2))."
             (which-key-add-key-based-replacements prefix-nnorm-key def)))))))
 
 (defun leader--set-bindings (map bindings &optional mode-desc)
+  "Enumerate BINDINGS into MAP taking account of MAP-DESC.
+MAP should be a symbol to an existing key-map.
+BINDINGS should be a list of key-binding pairs. Keys can be strings
+or vectors. Bindings should be a command, a string to be interpreted
+as a macro or some other valid binding sequence. You can also supply
+a binding as a list with the car being the binding and the rest being
+a plist configuring the binding. For now you can supply a :which-key
+(or :wk) field in the binding plist to specify the which-key form for
+a binding.
+MODE-DESC should be non-nil when we're binding into a major-mode or
+minor-mode leader map. When supplied it should be a cons of major/minor
+and the mode-name."
   (let ((map-value (symbol-value map))
         major-key-alias-map
         (check-major-mode-key (and (eq (car mode-desc) 'minor)
@@ -248,30 +251,32 @@ into a list of the form ((KEY1 . ARG1) (KEY2 . ARG2))."
                                    ;; if "," is simulated, this binding will be visible.
                                    leader-major-mode-key
                                    ;; if actively disabled, then no point in binding it.
-                                   )))
-    (cl-loop for (key . def) in (leader--bindings-to-tuples bindings)
-             when leader--prefix
-               do (setq key (string-trim-left (concat leader--prefix " " key)))
-             end
+                                   ))
+        key val)
+    (while (setq key (pop bindings))
+      (setq val (pop bindings))
+      (when leader--prefix
+        (setq key (string-trim-left (concat leader--prefix " " key))))
 
-             when (or (stringp def)
-                      (and (consp def)
-                           (stringp (car def))
-                           (stringp (cdr def))))
-               do (leader--set-whick-key-prefix key def mode-desc)
-             else
-               do (bind-key key def map-value)
+      ;; Supplied as a binding alongside a plist of possibilities.
+      (when (consp val)
+        (when-let ((desc (or (plist-get (cdr val) :which-key)
+                             (plist-get (cdr val) :wk))))
+          (leader--set-whick-key-prefix key desc mode-desc))
+        (setq val (car val)))
 
-               and when (and check-major-mode-key
-                             (leader--key-in-major-mode-prefix-p key))
-                 do (or major-key-alias-map
-                        (setq major-key-alias-map
-                              (leader--init-minor-mode-map-in-major-mode-key
-                               (and (eq (car mode-desc) 'minor)
-                                    (cdr mode-desc))
-                               map)))
-                 and do (let ((stripped-key (substring key (length leader-major-mode-prefix))))
-                          (bind-key stripped-key def major-key-alias-map)))))
+      (bind-key key val map-value)
+      (when (and check-major-mode-key
+                 (leader--key-in-major-mode-prefix-p key))
+        ;; Generate a keymap to bind the minor-mode key into the major-mode prefix.
+        (or major-key-alias-map
+            (setq major-key-alias-map
+                  (leader--init-minor-mode-map-in-major-mode-key
+                   (and (eq (car mode-desc) 'minor)
+                        (cdr mode-desc))
+                   map)))
+        (let ((stripped-key (substring key (length leader-major-mode-prefix))))
+          (bind-key stripped-key val major-key-alias-map))))))
 
 ;;  _                _                _     _           _ _
 ;; | | ___  __ _  __| | ___ _ __     | |__ (_)_ __   __| (_)_ __   __ _ ___
@@ -281,28 +286,51 @@ into a list of the form ((KEY1 . ARG1) (KEY2 . ARG2))."
 ;;                                                                |___/
 
 ;;;###autoload
-(defun leader/set-keys (&rest bindings)
+(defun leader-set-keys (&rest bindings)
+  (declare (indent defun))
   (leader--set-bindings 'leader-map bindings))
-(put 'leader/set-keys 'lisp-indent-function 'defun)
+(define-obsolete-function-alias 'leader/set-keys 'leader-set-keys "0.0.4")
 
 ;;;###autoload
-(defun leader/set-keys-for-mode (mode &rest bindings)
+(defun leader-set-keys-for-mode (mode &rest bindings)
+  (declare (indent defun))
   (let* ((map (intern (format "leader-%s-map" mode))))
-    (when (leader--init-major-mode-prefix-map mode map t)
+    (when (leader--init-major-mode-prefix-map mode map 'major)
       (leader--set-bindings map bindings `(minor . ,mode)))))
-(put 'leader/set-keys-for-mode 'lisp-indent-function 'defun)
+(define-obsolete-function-alias 'leader/set-keys-for-mode 'leader-set-keys-for-mode "0.0.4")
 
 ;;;###autoload
-(defun leader/set-keys-for-major-mode (mode &rest bindings)
+(defun leader-set-keys-for-major-mode (mode &rest bindings)
+  (declare (indent defun))
   (let* ((map (intern (format "leader-%s-map" mode))))
     (when (leader--init-major-mode-prefix-map mode map)
       (leader--set-bindings map bindings `(major . ,mode)))))
-(put 'leader/set-keys-for-major-mode 'lisp-indent-function 'defun)
+(define-obsolete-function-alias 'leader/set-keys-for-major-mode 'leader-set-keys-for-major-mode "0.0.4")
+(define-obsolete-function-alias 'leader/set-keys-for-mode! 'leader/set-keys-for-major-mode "0.0.3")
+
+;; TODO: If DESC is nil then remove the which-key description for binding.
+;;;###autoload
+(defun leader-declare-prefix (&rest bindings)
+  (let (key desc)
+    (while (setq key (pop bindings))
+      (when (setq desc (pop bindings))
+        (leader--set-whick-key-prefix key desc nil)))))
 
 ;;;###autoload
-(defalias 'leader/set-keys-for-mode! #'leader/set-keys-for-major-mode)
+(defun leader-declare-prefix-for-mode (mode &rest bindings)
+  (let (key desc)
+    (while (setq key (pop bindings))
+      (when (setq desc (pop bindings))
+        (leader--set-whick-key-prefix key desc `(minor . ,mode))))))
 
-;; pass mode argument as list to repeat for every member of list.
+;;;###autoload
+(defun leader-declare-prefix-for-major-mode (mode &rest bindings)
+  (let (key desc)
+    (while (setq key (pop bindings))
+      (when (setq desc (pop bindings))
+        (leader--set-whick-key-prefix key desc `(major . ,mode))))))
+
+;; Pass mode argument as list to repeat for every member of list.
 (let* ((multi-mode-batch-call
         (lambda (func mode &rest args)
           "pass mode argument as list, to repeat for every member of list."
@@ -310,12 +338,14 @@ into a list of the form ((KEY1 . ARG1) (KEY2 . ARG2))."
               (dolist (m mode)
                 (apply func m args))
             (apply func mode args))))
-       (mode-funcs '(leader/set-keys-for-mode
-                     leader/set-keys-for-major-mode)))
+       (mode-funcs '(leader-set-keys-for-mode
+                     leader-set-keys-for-major-mode
+                     leader-declare-prefix-for-mode
+                     leader-declare-prefix-for-major-mode)))
   (dolist (mode-func mode-funcs)
     (advice-add mode-func :around multi-mode-batch-call)))
 
-(leader/set-keys
+(leader-declare-prefix
   leader-major-mode-prefix '("major-mode" . "major mode commands"))
 
 (provide 'spaceleader)
