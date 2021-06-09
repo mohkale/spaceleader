@@ -259,7 +259,8 @@ and the mode-name."
         (setq key (string-trim-left (concat leader--prefix " " key))))
 
       ;; Supplied as a binding alongside a plist of possibilities.
-      (when (consp val)
+      (when (and (consp val)
+                 (not (functionp val)))
         (when-let ((desc (or (plist-get (cdr val) :which-key)
                              (plist-get (cdr val) :wk))))
           (leader--set-whick-key-prefix key desc mode-desc))
