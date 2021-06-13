@@ -259,25 +259,35 @@ and the mode-name."
         (setq key (string-trim-left (concat leader--prefix " " key))))
 
       ;; Supplied as a binding alongside a plist of possibilities.
+      ;; Or if the first entry is a keyword then there is no binding
+      ;; its just properties to be set.
       (when (and (consp val)
                  (not (functionp val)))
-        (when-let ((desc (or (plist-get (cdr val) :which-key)
-                             (plist-get (cdr val) :wk))))
-          (leader--set-whick-key-prefix key desc mode-desc))
-        (setq val (car val)))
+        (let ((props (if (keywordp (car val)) val (cdr val))))
+          (when-let ((desc (or (plist-get props :which-key)
+                               (plist-get props :wk))))
+            (leader--set-whick-key-prefix key desc mode-desc)))
+        ;; Strip the command props from the command. We erase the
+        ;; key instead of val because val can be nil to erase an
+        ;; existing leader binding, but you can bind to an empty
+        ;; key.
+        (setq val (car val)
+              key (unless (keywordp val)
+                    key)))
 
-      (bind-key key val map-value)
-      (when (and check-major-mode-key
-                 (leader--key-in-major-mode-prefix-p key))
-        ;; Generate a keymap to bind the minor-mode key into the major-mode prefix.
-        (or major-key-alias-map
-            (setq major-key-alias-map
-                  (leader--init-minor-mode-map-in-major-mode-key
-                   (and (eq (car mode-desc) 'minor)
-                        (cdr mode-desc))
-                   map)))
-        (let ((stripped-key (substring key (length leader-major-mode-prefix))))
-          (bind-key stripped-key val major-key-alias-map))))))
+      (when key
+        (bind-key key val map-value)
+        (when (and check-major-mode-key
+                   (leader--key-in-major-mode-prefix-p key))
+          ;; Generate a keymap to bind the minor-mode key into the major-mode prefix.
+          (or major-key-alias-map
+              (setq major-key-alias-map
+                    (leader--init-minor-mode-map-in-major-mode-key
+                     (and (eq (car mode-desc) 'minor)
+                          (cdr mode-desc))
+                     map)))
+          (let ((stripped-key (substring key (length leader-major-mode-prefix))))
+            (bind-key stripped-key val major-key-alias-map)))))))
 
 ;;  _                _                _     _           _ _
 ;; | | ___  __ _  __| | ___ _ __     | |__ (_)_ __   __| (_)_ __   __ _ ___
@@ -312,6 +322,7 @@ and the mode-name."
 ;; TODO: If DESC is nil then remove the which-key description for binding.
 ;;;###autoload
 (defun leader-declare-prefix (&rest bindings)
+  (declare (indent defun))
   (let (key desc)
     (while (setq key (pop bindings))
       (when (setq desc (pop bindings))
@@ -319,6 +330,7 @@ and the mode-name."
 
 ;;;###autoload
 (defun leader-declare-prefix-for-mode (mode &rest bindings)
+  (declare (indent defun))
   (let (key desc)
     (while (setq key (pop bindings))
       (when (setq desc (pop bindings))
@@ -326,6 +338,7 @@ and the mode-name."
 
 ;;;###autoload
 (defun leader-declare-prefix-for-major-mode (mode &rest bindings)
+  (declare (indent defun))
   (let (key desc)
     (while (setq key (pop bindings))
       (when (setq desc (pop bindings))
