@@ -262,7 +262,8 @@ and the mode-name."
       ;; Or if the first entry is a keyword then there is no binding
       ;; its just properties to be set.
       (when (and (consp val)
-                 (not (functionp val)))
+                 (not (functionp val))
+                 (not (keymapp val)))
         (let ((props (if (keywordp (car val)) val (cdr val))))
           (when-let ((desc (or (plist-get props :which-key)
                                (plist-get props :wk))))
