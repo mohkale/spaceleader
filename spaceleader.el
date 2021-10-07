@@ -220,11 +220,11 @@ of constructing a whole new map for it :? "
         (with-eval-after-load 'which-key
           (if mode
               (progn
-                (which-key-declare-prefixes-for-mode (cdr mode) prefix-key       def)
-                (which-key-declare-prefixes-for-mode (cdr mode) prefix-nnorm-key def)
+                (which-key-add-major-mode-key-based-replacements (cdr mode) prefix-key       def)
+                (which-key-add-major-mode-key-based-replacements (cdr mode) prefix-nnorm-key def)
 
                 (when leader-major-mode-key
-                  (which-key-declare-prefixes-for-mode (cdr mode)
+                  (which-key-add-major-mode-key-based-replacements (cdr mode)
                     (concat leader-major-mode-key " " key) def)))
 
             (which-key-add-key-based-replacements prefix-key       def)
