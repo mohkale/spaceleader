@@ -34,6 +34,13 @@
 (defun use-package-normalize/:leader (_name _keyword args)
   args)
 
+(defmacro use-package-leader--plist-pop (list prop &optional default)
+  "delete PROP from plist LIST, returning value of PROP.
+if PROP isn't in LIST, DEFAULT will be returned."
+  `(prog1
+       (or (plist-get ,list ,prop) ,default)
+     (cl-remf ,list ,prop)))
+
 (defun use-package-leader-format-args (args)
   ;; Properties
   ;;  :defer - when true, leader are only assigned after package load
@@ -47,10 +54,10 @@
    ;; with leader-func = nil
    with res = nil
    for arg in args
-   do (let ((major (not (plist-pop! arg :minor))))
-        (setq modes (or (plist-pop! arg :modes)
-                        (plist-pop! arg :mode))
-              prefix (plist-pop! arg :prefix)
+   do (let ((major (not (use-package-leader--plist-pop arg :minor))))
+        (setq modes (or (use-package-leader--plist-pop arg :modes)
+                        (use-package-leader--plist-pop arg :mode))
+              prefix (use-package-leader--plist-pop arg :prefix)
               res (if modes
                       (list (if major 'leader-set-keys-for-major-mode 'leader-set-keys-for-mode)
                             modes)
