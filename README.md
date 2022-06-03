@@ -24,6 +24,16 @@ following recipe.
 This package also comes bundled with a file `spaceleader-base.el` which offers some
 basic leader bindings which you may or may not want setup for you.
 
+### GNU Guix
+
+`spaceleader` is currently available from the [Guix 'R Us](https://whereis.みんな/) [channel](https://guix.gnu.org/manual/en/html_node/Channels.html).
+
+After [adding](https://git.sr.ht/~whereiseveryone/guixrus#usage) the Guix channel, run the following command:
+ 
+```elisp
+guix install emacs-spaceleader
+```
+
 ## Commands
 
 | spacemacs                                | spaceleader                          |
