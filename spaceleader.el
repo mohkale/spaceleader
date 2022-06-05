@@ -206,7 +206,7 @@ of constructing a whole new map for it :? "
     (>= (length ,key) 1)
     (string-prefix-p leader-major-mode-prefix ,key)))
 
-(defun leader--set-whick-key-prefix (key def mode)
+(defun leader--set-which-key-prefix (key def mode)
   (let ((desc def) long-desc)
     (when (consp def)
       (setq desc      (car def)
@@ -267,7 +267,7 @@ and the mode-name."
         (let ((props (if (keywordp (car val)) val (cdr val))))
           (when-let ((desc (or (plist-get props :which-key)
                                (plist-get props :wk))))
-            (leader--set-whick-key-prefix key desc mode-desc)))
+            (leader--set-which-key-prefix key desc mode-desc)))
         ;; Strip the command props from the command. We erase the
         ;; key instead of val because val can be nil to erase an
         ;; existing leader binding, but you can bind to an empty
@@ -327,7 +327,7 @@ and the mode-name."
   (let (key desc)
     (while (setq key (pop bindings))
       (when (setq desc (pop bindings))
-        (leader--set-whick-key-prefix key desc nil)))))
+        (leader--set-which-key-prefix key desc nil)))))
 
 ;;;###autoload
 (defun leader-declare-prefix-for-mode (mode &rest bindings)
@@ -335,7 +335,7 @@ and the mode-name."
   (let (key desc)
     (while (setq key (pop bindings))
       (when (setq desc (pop bindings))
-        (leader--set-whick-key-prefix key desc `(minor . ,mode))))))
+        (leader--set-which-key-prefix key desc `(minor . ,mode))))))
 
 ;;;###autoload
 (defun leader-declare-prefix-for-major-mode (mode &rest bindings)
@@ -343,7 +343,7 @@ and the mode-name."
   (let (key desc)
     (while (setq key (pop bindings))
       (when (setq desc (pop bindings))
-        (leader--set-whick-key-prefix key desc `(major . ,mode))))))
+        (leader--set-which-key-prefix key desc `(major . ,mode))))))
 
 ;; Pass mode argument as list to repeat for every member of list.
 (let* ((multi-mode-batch-call
