@@ -1,4 +1,4 @@
-;; spaceleader.el --- leader-key implementation from spacemacs -*- lexical-binding: t -*-
+;;; spaceleader.el --- leader-key implementation from spacemacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019 Mohsin Kaleem
 
@@ -21,7 +21,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;; Package-Requires: ((emacs "26.1") (general "0.1") (bind-map "1.1") (bind-key "2.4) (dash "2.17"))
+;; Package-Requires: ((emacs "26.1") (general "0.1") (bind-map "1.1") (bind-key "2.4") (dash "2.17"))
 
 ;;; Commentary:
 ;; This script is largely forked from [[https://github.com/syl20bnr/spacemacs/blob/master/core/core-keybindings.el][spacemacs/core/core-keybindings.el]] and is
